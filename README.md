@@ -14,6 +14,8 @@ that can be deployed in the `plugin` directory of your Neo4j instance.
 
     cp target/procedures-1.0-SNAPSHOT.jar neo4j-enterprise-3.1.0/plugins/.
 
+If you don't have maven, you can look at the releases tab of this github repository and grab a pre-compiled jar.
+
 Start Neo4j and log in.
 
 Create sample users:
