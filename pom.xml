@@ -70,6 +70,13 @@
             <scope>test</scope>
             <version>${jmh.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>procedure-compiler</artifactId>
+            <version>${neo4j.version}</version>
+            <optional>true</optional>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
