@@ -7,6 +7,7 @@ import org.neo4j.test.server.HTTP;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
@@ -20,15 +21,15 @@ public class DistinctNetworkTest {
     @Test
     public void shouldGetDistinctNetwork() {
         HTTP.Response response = HTTP.POST(neo4j.httpURI().resolve("/db/data/transaction/commit").toString(), QUERY);
-        ArrayList row = getResultRow(response);
+        HashSet row = getResultRow(response);
 
-        assertEquals(ANSWER_LIST, row);
+        assertEquals(ANSWER_SET, row);
     }
 
     private static final HashMap<String, Object> QUERY = new HashMap<String, Object>(){{
         put("statements", new ArrayList<Map<String, Object>>() {{
             add(new HashMap<String, Object>() {{
-                put("statement", "MATCH (c:Customer {CustomerID:'c1'}) CALL com.maxdemarzi.distinct_network(c) YIELD value RETURN value");
+                put("statement", "MATCH (c:Customer {CustomerID:'c1'}) CALL com.maxdemarzi.distinct_network2(c) YIELD value RETURN value");
             }});
         }});
     }};
@@ -51,7 +52,7 @@ public class DistinctNetworkTest {
 
 
 
-    private static final ArrayList<String> ANSWER_LIST = new ArrayList<String>(){{
+    private static final HashSet<String> ANSWER_SET = new HashSet<String>(){{
         add("c2");
         add("c5");
         add("c3");
@@ -60,12 +61,12 @@ public class DistinctNetworkTest {
     }};
 
 
-    static ArrayList getResultRow(HTTP.Response response) {
+    static HashSet getResultRow(HTTP.Response response) {
         Map actual = response.content();
         ArrayList results = (ArrayList)actual.get("results");
         HashMap result = (HashMap)results.get(0);
         ArrayList<Map> data = (ArrayList)result.get("data");
-        ArrayList<String> values = new ArrayList();
+        HashSet<String> values = new HashSet();
         data.forEach((value) -> values.add((String)((ArrayList) value.get("row")).get(0)));
         return values;
     }

@@ -17,6 +17,7 @@ import org.roaringbitmap.RoaringBitmap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class DistinctNetwork {
     // This field declares that we need a GraphDatabaseService
@@ -125,5 +126,87 @@ public class DistinctNetwork {
         }
 
         return results.stream();
+    }
+
+    @Description("com.maxdemarzi.distinct_network2(node) | Find Distinct Customer Ids 4 levels from network")
+    @Procedure(name = "com.maxdemarzi.distinct_network2", mode = Mode.READ)
+    public Stream<StringResult> GetDistinctNetwork2(@Name("from") Node start) throws EntityNotFoundException {
+        ThreadToStatementContextBridge ctx = dbAPI.getDependencyResolver().resolveDependency(ThreadToStatementContextBridge.class);
+        ReadOperations ops = ctx.get().readOperations();
+        int propertyCustomerIDkey = ops.propertyKeyGetForName("CustomerID");
+        RoaringBitmap seen = new RoaringBitmap();
+        RoaringBitmap nextA = new RoaringBitmap();
+        RoaringBitmap nextB = new RoaringBitmap();
+        int startId = (int)start.getId();
+        seen.add(startId);
+
+        RelationshipIterator relationshipIterator = ops.nodeGetRelationships(start.getId(), Direction.OUTGOING);
+        Cursor<RelationshipItem> c;
+        Iterator<Integer> iterator;
+
+        while (relationshipIterator.hasNext()) {
+            c = ops.relationshipCursor(relationshipIterator.next());
+            c.next();
+            int nodeId = (int)c.get().endNode();
+            if(seen.checkedAdd(nodeId)) {
+                nextA.add(nodeId);
+            }
+        }
+
+        // Level 2
+        iterator = nextA.iterator();
+        while (iterator.hasNext()) {
+            relationshipIterator = ops.nodeGetRelationships((long)iterator.next(), Direction.OUTGOING);
+            while (relationshipIterator.hasNext()) {
+                c = ops.relationshipCursor(relationshipIterator.next());
+                c.next();
+                int nodeId = (int)c.get().endNode();
+                if(seen.checkedAdd(nodeId)) {
+                    nextB.add(nodeId);
+                }
+            }
+        }
+
+        nextA.clear();
+
+        // Level 3
+
+        iterator = nextB.iterator();
+        while (iterator.hasNext()) {
+            relationshipIterator = ops.nodeGetRelationships(iterator.next(), Direction.OUTGOING);
+            while (relationshipIterator.hasNext()) {
+                c = ops.relationshipCursor(relationshipIterator.next());
+                c.next();
+                int nodeId = (int)c.get().endNode();
+                if(seen.checkedAdd(nodeId)) {
+                    nextA.add(nodeId);
+                }
+            }
+        }
+
+        // Level 4
+        iterator = nextA.iterator();
+        while (iterator.hasNext()) {
+            relationshipIterator = ops.nodeGetRelationships(iterator.next(), Direction.OUTGOING);
+            while (relationshipIterator.hasNext()) {
+                c = ops.relationshipCursor(relationshipIterator.next());
+                c.next();
+                int nodeId = (int)c.get().endNode();
+                seen.add(nodeId);
+            }
+        }
+
+        seen.remove(startId);
+        // Get Results
+
+        return StreamSupport.stream(seen.spliterator(),false).
+                map(nodeId -> {
+                    try {
+                        return new StringResult((String) ops.nodeGetProperty(nodeId, propertyCustomerIDkey));
+                    } catch (EntityNotFoundException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                });
     }
 }

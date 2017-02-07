@@ -17,7 +17,7 @@ public class Benchmarks {
 
     private GraphDatabaseService db;
 
-    @Setup(Level.Invocation )
+    @Setup(Level.Trial )
     public void prepare() throws IOException, KernelException {
         db = new TestGraphDatabaseFactory().newImpermanentDatabase();
         Procedures proceduresService = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class);
@@ -33,7 +33,7 @@ public class Benchmarks {
 
             db.execute("MATCH (u1:Customer),(u2:Customer)\n" +
                     "WITH u1,u2\n" +
-                    "LIMIT 10000000\n" +
+                    "LIMIT 100000000\n" +
                     "WHERE rand() < 0.1\n" +
                     "CREATE (u1)-[:FRIEND_OF]->(u2);");
             tx.success();
@@ -55,4 +55,18 @@ public class Benchmarks {
         }
     }
 
+
+    @Benchmark
+    @Warmup(iterations = 5)
+    @Measurement(iterations = 10)
+    @Fork(1)
+    @Threads(4)
+    @BenchmarkMode(Mode.Throughput)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureDistinctNetwork2() throws IOException {
+        try ( Transaction tx = db.beginTx() ) {
+            db.execute("MATCH (c:Customer {CustomerID:'Jennifer0'}) CALL com.maxdemarzi.distinct_network2(c) YIELD value RETURN value");
+            tx.success();
+        }
+    }
 }
